@@ -4,10 +4,11 @@ import json
 import csv
 from models import Iris, Predict
 import pickle
+import settings
 
 app = FastAPI()
 
-MEDIA_ROOT = "./media/iris.csv"
+
 
 @app.get('/')
 async def test():
@@ -20,7 +21,7 @@ async def test():
 async def iris(response:Response):
     try:
         # Crear un dataframe con la información de Iris:
-        df = pd.read_csv(MEDIA_ROOT)
+        df = pd.read_csv(settings.MEDIA_ROOT)
         # print(df)
         # lo transformamos a json para poder gestionarlo desde el front:
         data = df.to_json(orient="index")
@@ -37,7 +38,7 @@ async def iris(response:Response):
 # Método POST a la url "/insertData/"
 @app.post("/insertData/", status_code=201)
 async def insert(item:Iris):
-    with open(MEDIA_ROOT, "a", newline="") as csvfile:
+    with open(settings.MEDIA_ROOT, "a", newline="") as csvfile:
         # Nombres de los campos:
         fieldnames = ['sepal_length','sepal_width',
                       'petal_length','petal_width',
@@ -58,7 +59,7 @@ async def insert(item:Iris):
 @app.put("/updateData/{item_id}")
 async def updataData(item_id: int, item:Iris):
     # Leer el csv con ayuda de pandas:
-    df = pd.read_csv(MEDIA_ROOT)
+    df = pd.read_csv(settings.MEDIA_ROOT)
     # Modificamos el último dato con los valores que nos lleguen
     df.loc[df.index[-1], "sepal_length"] = item.sepal_length
     df.loc[df.index[-1], "sepal_width"] = item.sepal_width
@@ -67,7 +68,7 @@ async def updataData(item_id: int, item:Iris):
     df.loc[df.index[-1], "species"] = item.species
     
     # convertir a csv
-    df.to_csv(MEDIA_ROOT, index=False)
+    df.to_csv(settings.MEDIA_ROOT, index=False)
     # retornamos el id que hemos modificado y el dato en formato diccionario
     return {"item_id": item_id, **item.dict()}
 
@@ -75,7 +76,7 @@ async def updataData(item_id: int, item:Iris):
 # Método POST a la url "/prediccion/"
 @app.post("/prediccion/", status_code=201)
 async def predict(item: Predict):
-    pickle_model = pickle.load(open("./media/model.pkl", 'rb'))
+    pickle_model = pickle.load(open(settings.MEDIA_MODEL, 'rb'))
     result = pickle_model.predict([[item.sepal_length, item.sepal_width,
                                     item.petal_length, item.petal_width]])
     iris = {"Setosa": 0, "Versicolor": 1, "Virginica": 2}
@@ -89,10 +90,10 @@ async def predict(item: Predict):
 @app.delete("/deleteData/{item_id}")
 async def deleteData(item_id: int):
     # Leer el csv
-    df = pd.read_csv(MEDIA_ROOT)
+    df = pd.read_csv(settings.MEDIA_ROOT)
     # Eliminar la última fila
     df.drop(df.index[-1], inplace=True)
     # Convertir a csv
-    df.to_csv(MEDIA_ROOT, index=False)
+    df.to_csv(settings.MEDIA_ROOT, index=False)
     return {"item_id": item_id, "msg": "Eliminado"}
     
